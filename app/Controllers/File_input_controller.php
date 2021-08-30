@@ -13,12 +13,23 @@ class File_input_controller extends BaseController{
 
         if ($_FILES['output_file']['error'] == UPLOAD_ERR_OK && is_uploaded_file($_FILES['output_file']['tmp_name'])) { 
             $output_file = file_get_contents($_FILES['output_file']['tmp_name']); 
-            $isomsg = preg_grep("/0(.*)123212367744(.*)/", explode("\n", $output_file));
-
-
+            
+            
             if($chip) {
-                echo "kartu chip boi";
+                preg_match_all('/Message Type.*?123212367744.*?00000777410000077741/s', $output_file, $isomsg); // Message Type + RNN + S-123 //
+            
+                for($i = 0; $i<count($isomsg); $i++){
+                    $data=[
+                        0 => $isomsg[0][0],
+                        1 => $isomsg[0][1],
+                        2 => $isomsg[0][2],
+                        3 => $isomsg[0][3]
+                    ];
+                   
+                }
+                $parser->Iso_parse($data,true);
             }else {
+                $isomsg = preg_grep("/0(.*)121810487714(.*)/", explode("\n", $output_file)); // 0+RNN//
                 for($i = 0; $i<count($isomsg); $i++){
                     // NORMAL TRANSACTION // 
                     if(count($isomsg) == 2){
@@ -39,7 +50,7 @@ class File_input_controller extends BaseController{
             }
          
             
-            $parser->Iso_parse($data);
+            $parser->Iso_parse($data,false);
             // print_r($parsed_msg); 
             
         }

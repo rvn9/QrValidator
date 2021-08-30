@@ -12,7 +12,7 @@ class Iso_parser extends BaseController{
         }
     }
 
-	public function Iso_parse($data){
+	public function Iso_parse($data, $chip){
         // iso 8583 DE // 
         $DATA_ELEMENT = array (
             2 => array('an', 19, 1, "2. Primary Account Number"),
@@ -146,135 +146,164 @@ class Iso_parser extends BaseController{
 
         // instantiate iso msg //
 		$iso_msg = $data;
-       
         
-        for($i=0; $i<count($iso_msg); $i++){
-            
-            // counter iso msg bit //
-            $msg_readed = 0;
+        // CHIP CARD // 
+        if($chip){
+            for($i=0;$i<count($iso_msg);$i++){
+                $iso_msg_array = explode("\n", $iso_msg[$i]);
+                
+                $result[$i] = array();
 
-            // Set empty array to hold bit on or true value // 
-            $bit_is_on = array();
-
-            // Find bitmap length // 
-            $first_digit_bitmap = base_convert(substr($iso_msg[$i],4,1),16,2);
-            if(substr($first_digit_bitmap,0,1) == 0){
-                $bit_map_length = 16;
-            }elseif(substr($first_digit_bitmap,0,1) == 1){
-                $bit_map_length = 32;
-            }
-
-            // bitmap value // 
-            $bitmap =substr($iso_msg[$i],4,$bit_map_length);
-
-            // bitmap to binary // 
-            $bitmap_to_binary =  gmp_strval(gmp_init($bitmap, 16), 2);  
-            
-            //split binary bitmap to array //
-            $bitmap_binary_array = str_split($bitmap_to_binary);
-            
-            // Loopp to find true or on bit //
-            for($j=0; $j<count($bitmap_binary_array);$j++){
-                if($bitmap_binary_array[$j] == "1"){
-                    array_push($bit_is_on,$j+1);
-                }
-            }
-
-            // parsed message //
-            $result[$i] = [
-                "Message Type" => substr($iso_msg[$i],0,4), 
-                "Bit Map" => $bitmap,
-            ];
-
-            // +4 byte from message type //
-            $msg_readed = $bit_map_length + 4;
-
-            // Loop each bit map to DE //
-            for($k=1; $k<count($bit_is_on);$k++){
-                $key_index = $bit_is_on[$k]; // (1) bit value //
-
-                $max_bit_length = $DATA_ELEMENT[$key_index][1]; // Max bit length, for certain DE //
-
-                // Conf DE //
-                // PAN //
-                if($key_index == 2){
-                    $bit_length = (int)substr($iso_msg[$i],$msg_readed,2); 
-                    $msg_readed += 2; // +2 used for DE Lengths, example (08) , +3 example (031) // 
-                    $bit_length = $this->check_value($bit_length, $max_bit_length); // check how many bits we need to take certain DE //
-                }// Acquiring Institution //
-                else if($key_index == 32){
-                    $bit_length = substr($iso_msg[$i],$msg_readed,2);
-                    $msg_readed += 2; 
-                    $bit_length = $this->check_value($bit_length, $max_bit_length);
-                }// Forwarding Institution
-                else if($key_index == 33){
-                    $bit_length = (int)substr($iso_msg[$i],$msg_readed,2);
-                    $msg_readed += 2; 
-                    $bit_length = $this->check_value($bit_length, $max_bit_length);
-                }// Additional Data // 
-                else if($key_index == 48){
-                    $bit_length = (int)substr($iso_msg[$i],$msg_readed,3);
-                    $msg_readed += 3; 
-                    $bit_length = $this->check_value($bit_length, $max_bit_length);
-
-                    $bit_48_msg = substr($iso_msg[$i],$msg_readed,$bit_length);
+                for($j = 0; $j<count($iso_msg_array);$j++){
                     
-                    $PI_data = substr($bit_48_msg, strpos($bit_48_msg,"PI") + 4 , 4);
-                    $CD_data = substr($bit_48_msg, strpos($bit_48_msg,"CD") + 4 , (int)substr($bit_48_msg,strpos($bit_48_msg,"CD") + 2));
-                    $MC_data = substr($bit_48_msg, strpos($bit_48_msg,"MC") + 4 , (int)substr($bit_48_msg,strpos($bit_48_msg,"MC") + 2));
-
-                    // inserting bit 48 detail data // 
-                    $parsed_iso = [
-                        "DE 48 Length" => "(". str_pad($bit_length, 3, "0", STR_PAD_LEFT) . ")",
-                        "48. PI Product Indicator" => $PI_data,
-                        "48. CD Customer Name" => $CD_data,
-                        "48. MC Merchant Code" => $MC_data
-                    ];
-
-                }else if($key_index == 55){
-                    // to be adjusted
-                }// Topup Data // 
-                else if($key_index == 57){
-                    $bit_length = (int)substr($iso_msg[$i],$msg_readed,3);
-                    $msg_readed += 3;
-                    $bit_length = $this->check_value($bit_length, $max_bit_length);
-                }// Receiving ID //
-                else if($key_index == 100){
-                    $bit_length = (int)substr($iso_msg[$i],$msg_readed,2);
-                    $msg_readed += 2;
-                    $bit_length = $this->check_value($bit_length, $max_bit_length);
-                }// Account 1 //
-                else if($key_index == 102){
-                    $bit_length = (int)substr($iso_msg[$i],$msg_readed,2);
-                    $msg_readed += 2;
-                    $bit_length = $this->check_value($bit_length, $max_bit_length);
-                }else if($key_index == 123){
-                    $bit_length = (int)substr($iso_msg[$i],$msg_readed,3);
-                    $msg_readed += 3;
-                    $bit_length = $this->check_value($bit_length, $max_bit_length);
-                }
-                // Normal Bit //
-                else{
-                    $bit_length = $max_bit_length;
-                }
-
-                // inserting data // 
-                if($key_index != 48 && $key_index != 55){
-                    $parsed_iso = [
-                        $DATA_ELEMENT[$key_index][3] => substr($iso_msg[$i],$msg_readed,$bit_length),
-                    ];
-                }
                
+                    // special case bit 48  //
+                    if(substr($iso_msg_array[$j], 0,3) == "48."){
+                        $iso_msg_value = explode(".·", $iso_msg_array[$j]);
+                    }else{
+                        $iso_msg_value = explode(". ", $iso_msg_array[$j]);
+                    }
+                
 
-            
-                // updatae msg readed bit // 
-                $msg_readed += $bit_length;
+                    $iso_key = explode("..",$iso_msg_value[0]);
+                    $parsed_iso = [
+                        $iso_key[0] => $iso_msg_value[1]
+                    ];
 
-                // merge with the result before //
-                $result[$i] = array_merge($result[$i], $parsed_iso);
+                    // // // // print_r($parsed_iso);
+                    $result[$i] = array_merge($result[$i], $parsed_iso);
+                    
+                }
             }
-        }
-        
+           
+        }// NON CHIP CARD //
+        else{
+            for($i=0; $i<count($iso_msg); $i++){
+            
+                // counter iso msg bit //
+                $msg_readed = 0;
+    
+                // Set empty array to hold bit on or true value // 
+                $bit_is_on = array();
+    
+                // Find bitmap length // 
+                $first_digit_bitmap = base_convert(substr($iso_msg[$i],4,1),16,2);
+                if(substr($first_digit_bitmap,0,1) == 0){
+                    $bit_map_length = 16;
+                }elseif(substr($first_digit_bitmap,0,1) == 1){
+                    $bit_map_length = 32;
+                }
+    
+                // bitmap value // 
+                $bitmap =substr($iso_msg[$i],4,$bit_map_length);
+    
+                // bitmap to binary // 
+                $bitmap_to_binary =  gmp_strval(gmp_init($bitmap, 16), 2);  
+                
+                //split binary bitmap to array //
+                $bitmap_binary_array = str_split($bitmap_to_binary);
+                
+                // Loopp to find true or on bit //
+                for($j=0; $j<count($bitmap_binary_array);$j++){
+                    if($bitmap_binary_array[$j] == "1"){
+                        array_push($bit_is_on,$j+1);
+                    }
+                }
+    
+                // parsed message //
+                $result[$i] = [
+                    "Message Type" => substr($iso_msg[$i],0,4), 
+                    "Bit Map" => $bitmap,
+                ];
+    
+                // +4 byte from message type //
+                $msg_readed = $bit_map_length + 4;
+    
+                // Loop each bit map to DE //
+                for($k=1; $k<count($bit_is_on);$k++){
+                    $key_index = $bit_is_on[$k]; // (1) bit value //
+    
+                    $max_bit_length = $DATA_ELEMENT[$key_index][1]; // Max bit length, for certain DE //
+    
+                    // Conf DE //
+                    // PAN //
+                    if($key_index == 2){
+                        $bit_length = (int)substr($iso_msg[$i],$msg_readed,2); 
+                        $msg_readed += 2; // +2 used for DE Lengths, example (08) , +3 example (031) // 
+                        $bit_length = $this->check_value($bit_length, $max_bit_length); // check how many bits we need to take certain DE //
+                    }// Acquiring Institution //
+                    else if($key_index == 32){
+                        $bit_length = substr($iso_msg[$i],$msg_readed,2);
+                        $msg_readed += 2; 
+                        $bit_length = $this->check_value($bit_length, $max_bit_length);
+                    }// Forwarding Institution
+                    else if($key_index == 33){
+                        $bit_length = (int)substr($iso_msg[$i],$msg_readed,2);
+                        $msg_readed += 2; 
+                        $bit_length = $this->check_value($bit_length, $max_bit_length);
+                    }// Additional Data // 
+                    else if($key_index == 48){
+                        $bit_length = (int)substr($iso_msg[$i],$msg_readed,3);
+                        $msg_readed += 3; 
+                        $bit_length = $this->check_value($bit_length, $max_bit_length);
+    
+                        $bit_48_msg = substr($iso_msg[$i],$msg_readed,$bit_length);
+                        
+                        $PI_data = substr($bit_48_msg, strpos($bit_48_msg,"PI") + 4 , 4);
+                        $CD_data = substr($bit_48_msg, strpos($bit_48_msg,"CD") + 4 , (int)substr($bit_48_msg,strpos($bit_48_msg,"CD") + 2));
+                        $MC_data = substr($bit_48_msg, strpos($bit_48_msg,"MC") + 4 , (int)substr($bit_48_msg,strpos($bit_48_msg,"MC") + 2));
+    
+                        // inserting bit 48 detail data // 
+                        $parsed_iso = [
+                            "DE 48 Length" => "(". str_pad($bit_length, 3, "0", STR_PAD_LEFT) . ")",
+                            "48. PI Product Indicator" => $PI_data,
+                            "48. CD Customer Name" => $CD_data,
+                            "48. MC Merchant Code" => $MC_data
+                        ];
+    
+                    }// Topup Data // 
+                    else if($key_index == 57){
+                        $bit_length = (int)substr($iso_msg[$i],$msg_readed,3);
+                        $msg_readed += 3;
+                        $bit_length = $this->check_value($bit_length, $max_bit_length);
+                    }// Receiving ID //
+                    else if($key_index == 100){
+                        $bit_length = (int)substr($iso_msg[$i],$msg_readed,2);
+                        $msg_readed += 2;
+                        $bit_length = $this->check_value($bit_length, $max_bit_length);
+                    }// Account 1 //
+                    else if($key_index == 102){
+                        $bit_length = (int)substr($iso_msg[$i],$msg_readed,2);
+                        $msg_readed += 2;
+                        $bit_length = $this->check_value($bit_length, $max_bit_length);
+                    }// Delivery Channel ID //
+                    else if($key_index == 123){
+                        $bit_length = (int)substr($iso_msg[$i],$msg_readed,3);
+                        $msg_readed += 3;
+                        $bit_length = $this->check_value($bit_length, $max_bit_length);
+                    }
+                    // Normal Bit //
+                    else{
+                        $bit_length = $max_bit_length;
+                    }
+    
+                    // inserting data // 
+                    if($key_index != 48 && $key_index != 55){
+                        $parsed_iso = [
+                            $DATA_ELEMENT[$key_index][3] => substr($iso_msg[$i],$msg_readed,$bit_length),
+                        ];
+                    }
+                   
+    
+                
+                    // updatae msg readed bit // 
+                    $msg_readed += $bit_length;
+    
+                    // merge with the result before //
+                    $result[$i] = array_merge($result[$i], $parsed_iso);
+                }
+            }
+        }        
  
         print_r($result);
         // return $result;
