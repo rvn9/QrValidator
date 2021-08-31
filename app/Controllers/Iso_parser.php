@@ -195,7 +195,7 @@ class Iso_parser extends BaseController{
                 }
     
                 // bitmap value // 
-                $bitmap =substr($iso_msg[$i],4,$bit_map_length);
+                $bitmap = substr($iso_msg[$i],4,$bit_map_length);
     
                 // bitmap to binary // 
                 $bitmap_to_binary =  gmp_strval(gmp_init($bitmap, 16), 2);  
