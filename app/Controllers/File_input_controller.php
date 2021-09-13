@@ -14,65 +14,70 @@ class File_input_controller extends BaseController{
             // import excel reader //
             $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
             $spreadsheet = $reader->load($_FILES['mapping_file']['tmp_name']);
-            $DuplicatedSheetData = array_keys($spreadsheet->getActiveSheet()->getMergeCells());
-
-            // loop to fill empty value from merged cells //
-            for($i=0; $i<count($DuplicatedSheetData);$i++){
-                // explode merge cells range //
-                $CellIndex = explode(":", $DuplicatedSheetData[$i]);
-
-                // get main cell with value, ex N25:N27 , the value only stored in N25 //
-                $CellValue = $spreadsheet->getActiveSheet()->getCell($CellIndex[0])->getValue();
-
-                // starting index //
-                $StartIndex = (int) substr($CellIndex[0],1,2);
-
-                // ending index // 
-                $EndIndex = (int) substr($CellIndex[1],1,2);
-                
-                // column name example "A" ,"B" //
-                $ColumnName = substr($CellIndex[0],0,1);      
-                
-                // loop to copy the value from main cell, to other cell //
-                for($j = $StartIndex;$j <= $EndIndex; $j++){
-                    $spreadsheet->getActiveSheet()->setCellValue($ColumnName.$j , $CellValue);
-                }
-            }
-
-            // map to array and remove empty value //
-            $sheetData = array_values(array_map('array_filter', $spreadsheet->getActiveSheet()->toArray()));
-                
-            $test_case_index = 0;
-            // map sheet data into test case // 
-            for($j=4;$j<count($sheetData);$j++){
-                if($sheetData[$j] == null){
-                    break;
-                }else{
-                    $test_case[$test_case_index] = array();
-                    $type = explode(" - ", $sheetData[$j][2]); // explode chip - terminal value //
-                    
-                    $temp_data = [
-                        "Transaction Type" => $sheetData[$j][0],
-                        "Case No" => $sheetData[$j][1],
-                        "Card Type" => $type[0], // type 0 = card type, based on explode result above
-                        "Terminal Type" => $type[1], // type 1 =  terminal type, based on explode result above
-                        "Condition" => $sheetData[$j][3],
-                        "Action" => $sheetData[$j][4],
-                        "Amount" => $sheetData[$j][7],
-                        "Date" => $sheetData[$j][11],
-                        "RNN" => $sheetData[$j][12]
-                    ]; 
-
-                    $test_case[$test_case_index] = array_merge($test_case[$test_case_index], $temp_data);
-                    $test_case_index++;
-                }
-            }
-
-            $data = [
-                "test_case" =>$test_case,
-            ];
+            $sheetCount = $spreadsheet->getSheetCount();
+            $sheetName = $spreadsheet->getSheetNames();
             
-            echo json_encode($data);
+            $allTestCase = [];
+
+            for($k=0; $k<$sheetCount;$k++){
+                $DuplicatedSheetData = array_keys($spreadsheet->getSheet($k)->getMergeCells());
+                 // loop to fill empty value from merged cells //
+                for($i=0; $i<count($DuplicatedSheetData);$i++){
+                    // explode merge cells range //
+                    $CellIndex = explode(":", $DuplicatedSheetData[$i]);
+
+                    // get main cell with value, ex N25:N27 , the value only stored in N25 //
+                    $CellValue = $spreadsheet->getSheet($k)->getCell($CellIndex[0])->getValue();
+
+                    // starting index //
+                    $StartIndex = (int) substr($CellIndex[0],1,2);
+
+                    // ending index // 
+                    $EndIndex = (int) substr($CellIndex[1],1,2);
+                    
+                    // column name example "A" ,"B" //
+                    $ColumnName = substr($CellIndex[0],0,1);      
+                    
+                    // loop to copy the value from main cell, to other cell //
+                    for($j = $StartIndex;$j <= $EndIndex; $j++){
+                        $spreadsheet->getSheet($k)->setCellValue($ColumnName.$j , $CellValue);
+                    }
+                }
+                
+                // map to array and remove empty value //
+                $sheetData = array_values(array_map('array_filter', $spreadsheet->getSheet($k)->toArray()));
+                    
+                $test_case_index = 0;
+                // map sheet data into test case // 
+                for($j=4;$j<count($sheetData);$j++){
+                    if($sheetData[$j] == null){
+                        break;
+                    }else{
+                        $test_case[$test_case_index] = array();
+                        // $type = explode(" - ", $sheetData[$j][2]); // explode chip - terminal value //
+
+
+                        $temp_data = [
+                            "Transaction Type" => $sheetData[$j][0],
+                            "Condition" => str_replace(array("\n", "\r"), ' ', $sheetData[$j][2]),
+                            "Action" => $sheetData[$j][3],
+                            "Response Code" =>  substr($sheetData[$j][4],2),
+                            "Amount" => str_replace(array("\n", "\r"), ' ', $sheetData[$j][5]),
+
+                        ]; 
+
+                        $test_case[$test_case_index] = array_merge($test_case[$test_case_index], $temp_data);
+                        $test_case_index++;
+                    }
+                }
+
+                $data = [
+                    $sheetName[$k] => $test_case,
+                ];
+
+                $allTestCase = array_merge($allTestCase,$data);
+            }
+            echo json_encode($allTestCase);
         }else {
             
         }

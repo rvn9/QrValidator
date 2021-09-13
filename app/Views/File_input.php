@@ -96,27 +96,27 @@
                     return response.json();
                 }).then(function(response){
                     console.log(response)
-                    var test_case = response["test_case"]
-                    for(let index = 0; index < response["test_case"].length; index++){
-                        $('#accordion').append(
-                            '<div class="card">'+
-                                '<div class="card-header" id="heading'+ index +'">'+
-                                    '<h5 class="mb-0">'+
-                                        '<button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapse'+ index +'"'+
-                                                ' aria-expanded="false" aria-controls="collapse'+ index +'">'+
-                                            response["test_case"][index]['Transaction Type']+
-                                        '</button>'+
-                                    '</h5>'+
-                                '</div>'+
+                    // var test_case = response["test_case"]
+                    // for(let index = 0; index < response["test_case"].length; index++){
+                    //     $('#accordion').append(
+                    //         '<div class="card">'+
+                    //             '<div class="card-header" id="heading'+ index +'">'+
+                    //                 '<h5 class="mb-0">'+
+                    //                     '<button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapse'+ index +'"'+
+                    //                             ' aria-expanded="false" aria-controls="collapse'+ index +'">'+
+                    //                         response["test_case"][index]['Transaction Type']+
+                    //                     '</button>'+
+                    //                 '</h5>'+
+                    //             '</div>'+
 
-                                '<div id="collapse'+ index +'" class="collapse" aria-labelledby="heading'+ index +'" data-parent="#discogAccordion">'+
-                                    '<div class="card-body">'+
-                                        'Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf'+
-                                    '</div>'+
-                                '</div>'+
-                            '</div>'
-                        );
-                    }
+                    //             '<div id="collapse'+ index +'" class="collapse" aria-labelledby="heading'+ index +'" data-parent="#discogAccordion">'+
+                    //                 '<div class="card-body">'+
+                    //                     'Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf'+
+                    //                 '</div>'+
+                    //             '</div>'+
+                    //         '</div>'
+                    //     );
+                    // }
                 });
             }
             

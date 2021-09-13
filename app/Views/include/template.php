@@ -28,7 +28,7 @@
 <body class="d-flex text-center text-white bg-dark">
     <?= $this->renderSection('content') ?>
     <footer class="footer fixed-bottom">
-            <p>Qr Message Validator, by <a href="https://twitter.com/mdo" class="text-white">@mdo</a>.</p>
+            <p>Qr Message Validator, by Andreas Agustinus</a>.</p>
     </footer>
 </body>
 </html>
