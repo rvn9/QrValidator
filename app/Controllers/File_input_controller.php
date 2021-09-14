@@ -13,15 +13,19 @@ class File_input_controller extends BaseController{
         if(isset($_FILES['mapping_file'])){
             // import excel reader //
             $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
-            $spreadsheet = $reader->load($_FILES['mapping_file']['tmp_name']);
-            $sheetCount = $spreadsheet->getSheetCount();
-            $sheetName = $spreadsheet->getSheetNames();
+            $spreadsheet = $reader->load($_FILES['mapping_file']['tmp_name']); // get excel file //
+            $sheetCount = $spreadsheet->getSheetCount(); // get worksheet count //
+            $sheetName = $spreadsheet->getSheetNames(); // get worksheet name //
             
-            $allTestCase = [];
+            //create array //
+            $allTestCase = array();
 
+            // loop for each worksheet //
             for($k=0; $k<$sheetCount;$k++){
+                // get all merged cells //
                 $DuplicatedSheetData = array_keys($spreadsheet->getSheet($k)->getMergeCells());
-                 // loop to fill empty value from merged cells //
+                
+                // loop to fill empty value from merged cells //
                 for($i=0; $i<count($DuplicatedSheetData);$i++){
                     // explode merge cells range //
                     $CellIndex = explode(":", $DuplicatedSheetData[$i]);
@@ -71,8 +75,14 @@ class File_input_controller extends BaseController{
                     }
                 }
 
+                if($sheetName[$k] == "Bank as Acquirer"){
+                    $type = "acq";
+                }else if($sheetName[$k] == "Bank as Issuer"){
+                    $type = "iss";
+                }
+
                 $data = [
-                    $sheetName[$k] => $test_case,
+                    $type => $test_case,
                 ];
 
                 $allTestCase = array_merge($allTestCase,$data);

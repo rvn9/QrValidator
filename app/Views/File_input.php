@@ -3,8 +3,8 @@
 
 <?= $this->section('content'); ?>
 
-    <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
-        <main class="px-3">
+    <div class="text-center cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
+        <div class="px-3">
             <div id="alert" style="display:none;" >
                 <div style="padding:5px;">
                     <div class="alert alert-danger" role="alert">
@@ -41,19 +41,43 @@
                     Reset
                 </button>
             </div>
-        </main>
-    </div>
 
-    
+
+        </div>
+
+     
+      
+      
+    </div>
+    <div class="container-fluid" id="accordion" style="display:none;">
+        <div class="row justify-content-center">
+            <div class="container_accordion rounded col-5">
+                <p class="font-weight-bold">Bank As Acquirer</p>
+                <div class="accordion" id="accordion_sheet_acq">
+                </div>
+            </div>
+
+            <div class="container_accordion rounded col-5">
+                <p class="font-weight-bold">Bank As Issuer</p>
+                <div class="accordion" id="accordion_sheet_iss">
+                </div>
+            </div>
+          
+        </div>
+    </div>
+   
+
+
+  
 
     <script>
 
        
 
         $(document).ready(function(){
-
-            const mapping_file = document.getElementsByName("mapping_file")[0]; 
-            const excel_file = document.getElementsByName("output_file")[0];
+            
+            const mapping_file = document.getElementsByName("mapping_file")[0];  // get mapping file //
+            const output_file = document.getElementsByName("output_file")[0]; // get output file //
  
             // close alert button //
             $( "#close" ).click(function() {
@@ -66,22 +90,24 @@
                 $('#mapping_file').val("")
                 $('#label_output').text("Masukan File Output")
                 $('#label_excel').text("Masukan File Excel")
+                $("#submit_data").prop("disabled", false);
+                $("#accordion").css("display", "none");
+                $(".accordion-item").remove()
             })
 
+            // submit button //
             $("#submit_data").click(function(){
 
-                if(mapping_file.files[0] == null || excel_file.files[0] == null){
+                // file is empty pop up alert //
+                if(mapping_file.files[0] == null || output_file.files[0] == null){
                     $("#alert").show();
                 }else{
                     
+                    // call upload excel func //
                     upload_excel(mapping_file.files[0]);
-            
-                    // // disable button
-                    // $(this).prop("disabled", true);
-                    // // add spinner to button
-                    // $(this).html(
-                    //     ` <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>Loading...`
-                    // );
+                    
+                    // disable button
+                    $('#submit_data').prop("disabled", true);
                 }   
             });
 
@@ -95,28 +121,41 @@
                 }).then(function(response){
                     return response.json();
                 }).then(function(response){
-                    console.log(response)
-                    // var test_case = response["test_case"]
-                    // for(let index = 0; index < response["test_case"].length; index++){
-                    //     $('#accordion').append(
-                    //         '<div class="card">'+
-                    //             '<div class="card-header" id="heading'+ index +'">'+
-                    //                 '<h5 class="mb-0">'+
-                    //                     '<button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapse'+ index +'"'+
-                    //                             ' aria-expanded="false" aria-controls="collapse'+ index +'">'+
-                    //                         response["test_case"][index]['Transaction Type']+
-                    //                     '</button>'+
-                    //                 '</h5>'+
-                    //             '</div>'+
+                    
+                    var test_case = Object.keys(response);
 
-                    //             '<div id="collapse'+ index +'" class="collapse" aria-labelledby="heading'+ index +'" data-parent="#discogAccordion">'+
-                    //                 '<div class="card-body">'+
-                    //                     'Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf'+
-                    //                 '</div>'+
-                    //             '</div>'+
-                    //         '</div>'
-                    //     );
-                    // }
+                    // test_case 0 == Bank as Acq //
+                    // test_case 1 == Bank as Iss //
+                    for(var i = 0; i< test_case.length;i++){
+                        for(let index = 0; index < response[test_case[i]].length; index++){
+                            var action = response[test_case[i]][index]['Action']
+                            var response_code = response[test_case[i]][index]['Response Code']
+                            var amount = response[test_case[i]][index]['Amount']
+                            var condition = response[test_case[i]][index]['Condition']
+
+                            $('#accordion_sheet_' + test_case[i]).append(
+                                '<div class="accordion-item">'+
+                                    '<h2 class="accordion-header" id="heading'+ index +'">'+
+                                        '<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_'+ test_case[i]+ index +'"'+
+                                                ' aria-expanded="true" aria-controls="collapse'+ test_case[i] +index +'">'+
+                                            response[test_case[i]][index]['Transaction Type']+
+                                        '</button>'+
+                                    '</h2>'+
+
+                                    '<div id="collapse_'+test_case[i]+index +'" class="accordion-collapse collapse" aria-labelledby="heading'+ index +'" data-parent="#discogAccordion">'+
+                                        '<div class="accordion-body">'+
+                                            'Action: ' + action  +"</br>" +
+                                            'Amount: ' + amount  +"</br>" +
+                                            'Response Code: ' + response_code  +"</br>" +
+                                            'Condition: ' + condition +"</br>" +
+                                        '</div>'+
+                                    '</div>'+
+                                '</div>'
+                            );
+
+                            $("#accordion").css("display", "block");
+                        }
+                    }
                 });
             }
             
